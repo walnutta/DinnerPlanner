@@ -1,41 +1,43 @@
 import { useState, useEffect, useCallback } from "react";
-import { saveRecipe, deleteSavedRecipe, getSavedRecipes } from "../services/recipes";
-import { useAuth } from "./useAuth";
+
+const STORAGE_KEY = 'dinnerdrop_saved_recipes';
+
+const loadSavedRecipes = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
 
 export const useSavedRecipes = () => {
-  const { user } = useAuth();
-  const [saved, setSaved] = useState([]);
-  const [savedIds, setSavedIds] = useState(new Set());
-  
+  const [saved, setSaved] = useState(() => loadSavedRecipes());
+  const [savedIds, setSavedIds] = useState(() => new Set(loadSavedRecipes().map((r) => String(r.recipe_api_id))));
 
   useEffect(() => {
-    if (!user) return;
-    getSavedRecipes(user.id).then((recipes) => {
-      setSaved(recipes);
-      setSavedIds(new Set(recipes.map((r) => String(r.recipe_api_id))))
-    });
-  }, [user]);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    setSavedIds(new Set(saved.map((r) => String(r.recipe_api_id))));
+  }, [saved]);
 
   const save = useCallback(async (recipe) => {
-    if (!user || savedIds.has(recipe.recipeApiId)) return;
-    const record = await saveRecipe(recipe, user.id);
+    if (savedIds.has(String(recipe.recipeApiId))) return;
+    const record = {
+      recipe_api_id: String(recipe.recipeApiId),
+      title: recipe.title,
+      image_url: recipe.imageUrl,
+      saved_at: new Date().toISOString(),
+    };
     setSaved((prev) => [record, ...prev]);
-    setSavedIds((prev) => new Set(prev).add(recipe.recipeApiId));
-  }, [user, savedIds]);
+  }, [savedIds]);
 
   const remove = useCallback(async (recipeApiId) => {
-    if (!user) return;
-    await deleteSavedRecipe(recipeApiId, user.id);
-    setSaved((prev) => prev.filter((r) => r.recipe_api_id !== recipeApiId));
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(recipeApiId);
-      return next;
-    });
-  }, [user]);
+    setSaved((prev) => prev.filter((r) => r.recipe_api_id !== String(recipeApiId)));
+  }, []);
 
   const isSaved = useCallback(
-    (recipeApiId) => savedIds.has(recipeApiId),
+    (recipeApiId) => savedIds.has(String(recipeApiId)),
     [savedIds]
   );
 

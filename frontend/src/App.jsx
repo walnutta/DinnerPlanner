@@ -1,17 +1,14 @@
 import { useState } from 'react'
 import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { signOut } from './lib/auth'
 import { useRecipes } from './hooks/useRecipes'
 import { useSavedRecipes } from './hooks/useSavedRecipes'
-import { useAuth } from './hooks/useAuth'
 import { useRecipeDetail } from './hooks/useRecipeDetail'
 import Fridge from './components/Fridge'
 import Basket from './components/Basket'
 import RecipeCard from './components/RecipeCard'
 import RecipeStack from './components/RecipeStack'
 import RecipeDetail from './components/RecipeDetail'
-import Auth from './components/Auth'
 import './App.css'
 
 export const INITIAL_SHELVES = {
@@ -63,7 +60,6 @@ const TRAY_MAX = 3
 const SHELF_MAX = 6
 
 export default function App() {
-  const { user, loadingUser } = useAuth()
   const { recipes, loading, error, search, dismiss } = useRecipes()
   const { saved, save, remove, isSaved } = useSavedRecipes()
   const { detail, loading: detailLoading, fetch: fetchDetail, clear: clearDetail } = useRecipeDetail()
@@ -160,9 +156,6 @@ export default function App() {
     search(ingredientNames)
   }
 
-  if (loadingUser) return <div className="loading-screen">Loading...</div>
-  if (!user) return <Auth />
-
   return (
     <DndContext
       sensors={sensors}
@@ -185,15 +178,6 @@ export default function App() {
                 )}
               </button>
             </nav>
-            <button
-              onClick={signOut}
-              className="text-sm transition-colors"
-              style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => e.target.style.color = 'var(--text)'}
-              onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
-            >
-              Logout
-            </button>
           </header>
 
           <main className="app-main">
