@@ -1,23 +1,36 @@
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = 'dinnerdrop_saved_recipes';
+const COOKIE_KEY = 'dinnerdrop_saved_recipes';
 
-const loadSavedRecipes = () => {
-  if (typeof window === 'undefined') return [];
+const readCookie = () => {
+  if (typeof document === 'undefined') return [];
+  const parts = document.cookie.split('; ').find(p => p.startsWith(COOKIE_KEY + '='));
+  if (!parts) return [];
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const raw = parts.split('=')[1] || '';
+    return JSON.parse(decodeURIComponent(raw));
   } catch {
     return [];
   }
 };
 
+const writeCookie = (value) => {
+  if (typeof document === 'undefined') return;
+  try {
+    const serialized = encodeURIComponent(JSON.stringify(value));
+    // session cookie (no Expires) so it lasts for the browser session
+    document.cookie = `${COOKIE_KEY}=${serialized}; path=/`;
+  } catch {
+    // ignore
+  }
+};
+
 export const useSavedRecipes = () => {
-  const [saved, setSaved] = useState(() => loadSavedRecipes());
-  const [savedIds, setSavedIds] = useState(() => new Set(loadSavedRecipes().map((r) => String(r.recipe_api_id))));
+  const [saved, setSaved] = useState(() => readCookie());
+  const [savedIds, setSavedIds] = useState(() => new Set(readCookie().map((r) => String(r.recipe_api_id))));
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    writeCookie(saved);
     setSavedIds(new Set(saved.map((r) => String(r.recipe_api_id))));
   }, [saved]);
 
